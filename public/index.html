@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        *{
+            box-sizing: border-box;
+            margin:0;
+            padding:0;
+            font-family:'Segoe UI', sans-serif;
+        }
+        body{
+            background:#f0f2f5;
+            display:flex;
+            flex-direction:column;
+            align-items: center;
+            padding:20px;
+        }
+        h1{
+            margin-bottom:20px;
+            color:#333;
+        }
+        .container{
+            background:#fff;
+            padding:20px;
+           border-radius:12px;
+           box-shadow:0 4px 8px rgba(0,0,0,0.1);
+           width:100%;
+           max-width:500px;
+           margin-bottom:20px;
+
+        }
+        input{
+            width:100%;
+            padding:10px;
+            margin:5px 0;
+            border-radius:8px;
+            border:1px solid #ccc;
+        }
+        button{
+            padding:10px 15px;
+            margin:5px 5px 5px 0;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+            transition: 0.2s;
+        }
+        button:hover{
+            opacity:0.8;
+        }
+        .btn-primary{
+            background:#007bff;
+            color:#fff;
+        }
+        .btn-success{background:#28a745; color:#fff;}
+        .btn-danger{
+            background:#dc3545; color:#fff;
+        }
+        ul{
+            list-style:none;
+            margin-top:15px;
+            padding:0;
+        }
+        li{
+            background:#f9f9f9;
+            margin:10px 0;
+            border-radius:10px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+        .task-buttons button{
+            margin-left:5px;
+        }
+        .completed{
+            text-decoration:line-through;
+            color:gray;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task Manager App</h1>
+    <div class="container" id="auth">
+        <h2>Register/login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button class="btn-primary" onclick="register()">Register</button>
+        <button class="btn-success" onclick="login()">Login</button>
+        <button class="btn-danger" onclick="logout()">Logout</button>
+
+    </div>
+    <div class="container" id="tasks-section" style="display:block;">
+        <h2>Your Tasks</h2>
+        <input type="text" id="newTask" placeholder=" New task title">
+        <button class="btn-primary" onclick="addTask()">Add Task</button>
+        <ul id="taskList"></ul>
+    </div>
+
+   <script>
+    //Register
+    async function register(){
+        const username= document.getElementById("username").value.trim();
+        const password= document.getElementById("password").value.trim();
+        if(!username||!password)
+        return alert("Enter credentials");
+        const res= await fetch("/api/v1/auth/register",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            credentials:"include",
+            body:JSON.stringify({username, password})
+        });
+        const data= await res.json();
+        // console.log(data);
+        alert(data.msg);
+        if(res.ok){
+            loadTasks();
+        }
+    }
+    //login
+    async function login(){
+        const username= document.getElementById("username").value.trim();
+        const password= document.getElementById("password").value.trim();
+        const res= await fetch("/api/v1/auth/login", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            credentials:"include",
+            body:JSON.stringify({username, password})
+        });
+        const data= await res.json();
+        alert(data.msg);
+        if(res.ok){
+            loadTasks();
+        }
+
+
+
+    }
+    // logout
+    async function logout(){
+        const res= await fetch("/api/v1/auth/logout", {
+            method:"POST",
+            credentials:"include",
+        });
+        const data= await res.json();
+        alert(data.msg);
+        document.getElementById("tasks-section").style.display="none";
+        document.getElementById("taskList").innerHTML="";
+    }
+    // Load Tasks
+
+    async function loadTasks(){
+        const res= await fetch("/api/v1/tasks", {
+            credentials:"include"
+        });
+        const data= await res.json();
+        const ul= document.getElementById("taskList");
+        ul.innerHTML="";
+        // console.log(ul);
+        data.forEach(task=>{
+            const li= document.createElement("li");
+            li.innerHTML=`
+            <span class="${task.completed ? "completed":""}">${task.title}</span>
+            <div class="task-buttons">
+                <button class="btn-success" onclick="toggleTask('${task._id}',${task.completed})"> ${task.completed ?"Undo":"Complete"}</button>
+                <button class="btn-danger" onclick="deleteTask('${task._id}')">Delete</button>
+                </div>
+            `;
+            ul.appendChild(li);
+        });
+        document.getElementById("tasks-section").style.display="block";
+    }
+    // Add Task
+    async function addTask(){
+        const title= document.getElementById("newTask").value.trim();
+        if(!title){
+            return alert("enter task title");
+        }
+       const res= await fetch("/api/v1/tasks", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        credentials:"include",
+        body:JSON.stringify({title})
+       });
+       const data= await res.json();
+       console.log(data);
+    //    alert(`${data.title} added`);
+       document.getElementById("newTask").value="";
+       loadTasks();
+    }
+
+    //Toggle Task Completed
+    async function toggleTask(id, completed){
+        await fetch(`/api/v1/tasks/${id}`,{
+            method:"PUT",
+            headers:{"Content-Type":"application/json"},
+            credentials:"include",
+            body:JSON.stringify({completed:!completed})
+        });
+        loadTasks();
+    }
+    // Delete Tasks
+    async function deleteTask(id){
+        await fetch(`/api/v1/tasks/${id}`,{
+            method:"DELETE",
+            credentials:"include"
+        });
+        loadTasks();
+    }
+   </script>
+    
+</body>
+</html>
