@@ -158,7 +158,7 @@
         const ul= document.getElementById("taskList");
         ul.innerHTML="";
         // console.log(ul);
-        data.forEach(task=>{
+        res.forEach(task=>{
             const li= document.createElement("li");
             li.innerHTML=`
             <span class="${task.completed ? "completed":""}">${task.title}</span>
